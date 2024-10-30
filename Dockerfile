@@ -24,11 +24,8 @@ services:
       - WEBAPP_URL=${RAILWAY_PUBLIC_DOMAIN}
       - MICRONAUT_ENVIRONMENTS=control-plane
       - DATABASE_PROPERTIES='{"ssl":true}'
-      - airbyte.workspace.root=/tmp/workspace
-      - CONFIG_ROOT=/tmp/airbyte_config
-    volumes:
-      - /tmp/workspace:/tmp/workspace
-      - /tmp/airbyte_config:/tmp/airbyte_config
+      - airbyte.workspace.root=/data
+      - CONFIG_ROOT=/config
     ports:
       - "8001:8001"
     depends_on:
@@ -42,11 +39,8 @@ services:
       - DATABASE_PASSWORD=${POSTGRES_PASSWORD}
       - DATABASE_URL=${DATABASE_URL}
       - TEMPORAL_HOST=airbyte-temporal:7233
-      - WORKSPACE_ROOT=/tmp/workspace
-      - CONFIG_ROOT=/tmp/airbyte_config
-    volumes:
-      - /tmp/workspace:/tmp/workspace
-      - /tmp/airbyte_config:/tmp/airbyte_config
+      - WORKSPACE_ROOT=/data
+      - CONFIG_ROOT=/config
     depends_on:
       - airbyte-temporal
       - airbyte-server
