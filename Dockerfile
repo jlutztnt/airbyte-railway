@@ -7,5 +7,8 @@ ENV WEBAPP_URL=${RAILWAY_PUBLIC_DOMAIN}
 ENV DATABASE_USER=postgres
 ENV DATABASE_PASSWORD=${POSTGRES_PASSWORD}
 ENV DATABASE_URL=${DATABASE_URL}
+ENV airbyte.workspace.root=/tmp/workspace
+ENV CONFIG_ROOT=/tmp/airbyte_config
 
+RUN mkdir -p /tmp/workspace /tmp/airbyte_config
 EXPOSE 8001
