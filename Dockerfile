@@ -1,5 +1,7 @@
-FROM docker/compose:latest
+FROM airbyte/webapp:latest
 
-COPY docker-compose.yml /docker-compose.yml
+ENV AIRBYTE_VERSION=0.40.32
+ENV PORT=3000
+ENV API_URL=${RAILWAY_PUBLIC_DOMAIN}
 
-CMD ["up", "--build"]
+EXPOSE 3000
