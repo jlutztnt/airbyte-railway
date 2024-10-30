@@ -1,14 +1,64 @@
-FROM airbyte/server:0.50.24
+version: '3.7'
 
-ENV AIRBYTE_VERSION=0.50.24
-ENV PORT=8001
-ENV TRACKING_STRATEGY=logging
-ENV WEBAPP_URL=${RAILWAY_PUBLIC_DOMAIN}
-ENV DATABASE_USER=postgres
-ENV DATABASE_PASSWORD=${POSTGRES_PASSWORD}
-ENV DATABASE_URL=${DATABASE_URL}
-ENV airbyte.workspace.root=/tmp/workspace
-ENV CONFIG_ROOT=/tmp/airbyte_config
+services:
+  airbyte-temporal:
+    image: temporalio/auto-setup:1.7.0
+    environment:
+      - DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/development.yaml
+      - DB=postgresql
+      - DB_PORT=5432
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PWD=${POSTGRES_PASSWORD}
+      - POSTGRES_SEEDS=${DATABASE_URL}
+    ports:
+      - "7233:7233"
 
-RUN mkdir -p /tmp/workspace /tmp/airbyte_config
-EXPOSE 8001
+  airbyte-server:
+    image: airbyte/server:0.50.24
+    environment:
+      - AIRBYTE_VERSION=0.50.24
+      - DATABASE_USER=${POSTGRES_USER}
+      - DATABASE_PASSWORD=${POSTGRES_PASSWORD}
+      - DATABASE_URL=${DATABASE_URL}
+      - TEMPORAL_HOST=airbyte-temporal:7233
+      - WEBAPP_URL=${RAILWAY_PUBLIC_DOMAIN}
+      - MICRONAUT_ENVIRONMENTS=control-plane
+      - DATABASE_PROPERTIES='{"ssl":true}'
+      - airbyte.workspace.root=/tmp/workspace
+      - CONFIG_ROOT=/tmp/airbyte_config
+    volumes:
+      - /tmp/workspace:/tmp/workspace
+      - /tmp/airbyte_config:/tmp/airbyte_config
+    ports:
+      - "8001:8001"
+    depends_on:
+      - airbyte-temporal
+
+  airbyte-worker:
+    image: airbyte/worker:0.50.24
+    environment:
+      - AIRBYTE_VERSION=0.50.24
+      - DATABASE_USER=${POSTGRES_USER}
+      - DATABASE_PASSWORD=${POSTGRES_PASSWORD}
+      - DATABASE_URL=${DATABASE_URL}
+      - TEMPORAL_HOST=airbyte-temporal:7233
+      - WORKSPACE_ROOT=/tmp/workspace
+      - CONFIG_ROOT=/tmp/airbyte_config
+    volumes:
+      - /tmp/workspace:/tmp/workspace
+      - /tmp/airbyte_config:/tmp/airbyte_config
+    depends_on:
+      - airbyte-temporal
+      - airbyte-server
+
+  airbyte-webapp:
+    image: airbyte/webapp:0.50.24
+    environment:
+      - AIRBYTE_VERSION=0.50.24
+      - API_URL=${RAILWAY_PUBLIC_DOMAIN}/api
+      - INTERNAL_API_HOST=airbyte-server:8001
+      - CONNECTOR_BUILDER_API_URL=https://connectors.airbyte.com/files/registries/v0
+    ports:
+      - "80:80"
+    depends_on:
+      - airbyte-server
